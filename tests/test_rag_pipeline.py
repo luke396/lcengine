@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from app.core import DocumentLoader, TextChunker
+from app import DocumentLoader, TextChunker
 
 DEFAULT_CHUNK_SIZE = 500
 DEFAULT_CHUNK_OVERLAP = 100

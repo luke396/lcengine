@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.core import DocumentLoader, TextChunker
+from app import DocumentLoader, TextChunker
 
 
 def test_load_txt_document(sample_document_path):

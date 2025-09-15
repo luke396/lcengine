@@ -6,7 +6,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from app.core import EmbeddingService
+from app.config import config
+from app import EmbeddingService
 
 
 def test_init_with_api_key() -> None:
@@ -24,7 +25,7 @@ def test_init_with_env_api_key() -> None:
 
 def test_init_default_model() -> None:
     service = EmbeddingService(api_key="test-key")
-    assert service.model == "text-embedding-3-small"
+    assert service.model == config.EMBEDDING_MODEL
 
 
 def test_get_embedding_success(mock_single_embedding) -> None:

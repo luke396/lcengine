@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from app.core import DocumentChunk, SQLiteVectorStore
+from app import DocumentChunk, SQLiteVectorStore
 
 
 class MockEmbeddingService:
@@ -145,8 +145,8 @@ def temp_vector_store() -> Generator[SQLiteVectorStore, None, None]:
 
 
 @pytest.fixture
-def sample_chunks(mock_embeddings):
-    """Create sample document chunks for testing."""
+def sample_text_chunks():
+    """Create sample document chunks with text and metadata only (no embeddings)."""
     chunks = []
     texts = [
         "Machine learning is a subset of artificial intelligence.",
@@ -166,9 +166,24 @@ def sample_chunks(mock_embeddings):
                 "end_char": (i + 1) * 100,
                 "length": len(text),
             },
-            embedding=mock_embeddings(text),
+            embedding=None,  # No embedding for text-only chunks
         )
         chunks.append(chunk)
+
+    return chunks
+
+
+@pytest.fixture
+def sample_embedded_chunks(sample_text_chunks, mock_embeddings):
+    """Create sample document chunks with embeddings based on text chunks."""
+    chunks = []
+    for chunk in sample_text_chunks:
+        embedded_chunk = DocumentChunk(
+            content=chunk.content,
+            metadata=chunk.metadata,
+            embedding=mock_embeddings(chunk.content),
+        )
+        chunks.append(embedded_chunk)
 
     return chunks
 
