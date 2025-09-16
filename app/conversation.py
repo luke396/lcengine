@@ -1,4 +1,5 @@
 """Conversation management with context building and history."""
+
 import datetime
 from typing import Any
 
@@ -183,3 +184,8 @@ class ConversationManager:
                 "confidence": confidence,
                 "standalone_query": standalone_query,
             }
+
+    def clear_history(self) -> None:
+        """Clear the conversation history."""
+        self.conversation_history = []
+        logger.info("Conversation history cleared.")
