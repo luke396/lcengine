@@ -8,5 +8,14 @@ wheels/
 
 # Virtual environments
 .venv
+.venv-*
 
 .env
+
+# pytest
+.coverage
+htmlcov/
+
+*.npy
+*.db
+*.txt
