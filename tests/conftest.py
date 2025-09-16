@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pytest
 
-from app import DocumentChunk, SQLiteVectorStore
+from app import ConversationManager, DocumentChunk, SQLiteVectorStore
 
 
 class MockEmbeddingService:
@@ -222,3 +222,47 @@ def large_document_setup():
         doc_path.write_text(large_text)
 
         yield temp_path, doc_path, large_text
+
+
+@pytest.fixture
+def mock_rag_pipeline():
+    mock_pipeline = Mock()
+    mock_pipeline.query.return_value = []
+    return mock_pipeline
+
+
+@pytest.fixture
+def conversation_manager(mock_rag_pipeline):
+    return ConversationManager(
+        rag_pipeline=mock_rag_pipeline, openai_api_key="test-key"
+    )
+
+
+@pytest.fixture
+def sample_chunks():
+    """Create sample document chunks with scores for testing."""
+    return [
+        (
+            DocumentChunk(
+                content="Machine learning is a subset of artificial intelligence.",
+                metadata={"source": "ml_doc.pdf", "chunk_id": 1},
+            ),
+            0.8,
+        ),
+        (
+            DocumentChunk(
+                content="Deep learning uses neural networks with multiple layers.",
+                metadata={"source": "dl_doc.pdf", "chunk_id": 2},
+            ),
+            0.7,
+        ),
+        (
+            DocumentChunk(
+                content=(
+                    "Natural language processing enables machines to understand text."
+                ),
+                metadata={"source": "nlp_doc.pdf", "chunk_id": 3},
+            ),
+            0.6,
+        ),
+    ]
