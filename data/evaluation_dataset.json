@@ -1,0 +1,58 @@
+{
+  "dataset_info": {
+    "name": "LCEngine v0.1 RAG Evaluation Dataset",
+    "context": "https://arxiv.org/abs/2005.11401"
+  },
+  "test_cases": [
+    {
+      "id": 1,
+      "question": "What are the two main components of the Retrieval-Augmented Generation (RAG) model architecture described in the paper?",
+      "ideal_answer": "The RAG model architecture consists of two main components: a retriever and a generator. The retriever, based on Dense Passage Retrieval (DPR), fetches relevant text documents from a large corpus like Wikipedia. The generator, which uses a pre-trained sequence-to-sequence model like BART, then uses these documents as additional context to produce the final output."
+    },
+    {
+      "id": 2,
+      "question": "The paper introduces two distinct RAG model formulations. What are they, and how do they differ in their use of retrieved documents?",
+      "ideal_answer": "The two RAG formulations are RAG-Sequence and RAG-Token. The RAG-Sequence model retrieves a single set of documents and uses the same documents to generate the entire output sequence. In contrast, the RAG-Token model can use different retrieved documents to generate each individual token in the output sequence, allowing it to synthesize information from multiple sources."
+    },
+    {
+      "id": 3,
+      "question": "What does the paper identify as the \"parametric memory\" and \"non-parametric memory\" within the RAG framework?",
+      "ideal_answer": "In the RAG framework, the \"parametric memory\" refers to the knowledge stored within the parameters of the pre-trained sequence-to-sequence generator model (BART). The \"non-parametric memory\" is the external knowledge source, which is a dense vector index of a large text corpus (e.g., Wikipedia) that the retriever can access."
+    },
+    {
+      "id": 4,
+      "question": "How is the RAG model trained? Is direct supervision required for the documents that should be retrieved?",
+      "ideal_answer": "The RAG model is trained end-to-end by minimizing the negative marginal log-likelihood of the target output. It treats the retrieved document as a latent variable. Crucially, the model does not require direct supervision on which specific documents to retrieve; the retriever learns to fetch useful documents through backpropagation from the generator's performance on the downstream task."
+    },
+    {
+      "id": 5,
+      "question": "On which three open-domain Question Answering tasks did the RAG model set a new state of the art, according to the paper's results?",
+      "ideal_answer": "The paper reports that RAG models set a new state of the art on three open-domain Question Answering tasks: Natural Questions (NQ), WebQuestions (WQ), and CuratedTrec (CT)."
+    },
+    {
+      "id": 6,
+      "question": "What advantage does RAG's generative approach have over traditional extractive QA models, especially when the answer is not explicitly present in any single retrieved document?",
+      "ideal_answer": "Unlike extractive models that can only copy a span of text from a document, RAG's generative nature allows it to synthesize an answer from information spread across multiple documents. It can generate a correct answer even if the answer is not explicitly stated verbatim in any of the retrieved passages, which is a significant advantage. The paper notes RAG achieves 11.8% accuracy on NQ questions where the answer is not in any retrieved document."
+    },
+    {
+      "id": 7,
+      "question": "In the Jeopardy question generation task, how did human evaluators rate RAG's output compared to a baseline BART model in terms of factuality and specificity?",
+      "ideal_answer": "Overfitting can be prevented through several techniques: 1) Cross-validation to better assess model performance, 2) Regularization techniques (L1, L2) to penalize complex models, 3) Early stopping during training, 4) Using more training data, 5) Reducing model complexity, and 6) Dropout in neural networks."
+    },
+    {
+      "id": 8,
+      "question": "How does the paper demonstrate that RAG's knowledge can be updated without retraining the entire model?",
+      "ideal_answer": "The paper demonstrates this with an \"index hot-swapping\" experiment. They created two document indexes from Wikipedia dumps from different years (2016 and 2018) and queried the model about world leaders who had changed office between those dates. The model's accuracy was high when the index year matched the query year and low when they were mismatched, proving that the model's knowledge can be effectively updated by simply replacing the non-parametric memory index."
+    },
+    {
+      "id": 9,
+      "question": "What is the role of the Dense Passage Retriever (DPR) in the RAG model, and what kind of architecture does it use?",
+      "ideal_answer": "The Dense Passage Retriever (DPR) serves as the retrieval component of the RAG model. Its role is to take an input query and efficiently search a large document index to find the most relevant passages. DPR uses a bi-encoder architecture, with one BERT-based encoder creating embeddings for documents and another BERT-based encoder creating an embedding for the input query."
+    },
+    {
+      "id": 10,
+      "question": "For the FEVER fact verification task, how did RAG's performance compare to state-of-the-art pipeline models, and what was a key difference in its training approach?",
+      "ideal_answer": "On the 3-way FEVER classification task, RAG's accuracy was within 4.3% of state-of-the-art models. A key difference was that RAG did not require intermediate supervision on which evidence documents to retrieve, unlike the more complex, domain-specific pipeline models it was compared against. This makes the RAG approach more broadly applicable to tasks where such retrieval supervision is unavailable."
+    }
+  ]
+}
