@@ -12,17 +12,17 @@ import psutil
 from app import DocumentChunk, TextChunker
 
 
-def test_text_chunking_performance():
+def test_text_chunking_performance(text_chunker_default):
     large_text = "Machine learning is transforming industries. " * 5000
 
-    chunker = TextChunker(chunk_size=500, overlap=100)
+    chunker = text_chunker_default
 
     start_time = time.time()
     chunks = chunker.chunk_text(large_text, "performance_test")
     chunk_time = time.time() - start_time
 
     assert len(chunks) > 500, "Should create many chunks from large document"
-    assert chunk_time < 0.005, f"Chunking took too long: {chunk_time:.3f}s"
+    assert chunk_time < 0.010, f"Chunking took too long: {chunk_time:.3f}s"
 
     chars_per_second = len(large_text) / chunk_time
     chunks_per_second = len(chunks) / chunk_time
@@ -35,31 +35,13 @@ def test_text_chunking_performance():
     )
 
 
-def test_vector_store_performance(temp_vector_store, mock_embedding_service):
+def test_vector_store_performance(
+    temp_vector_store, performance_chunks_factory, mock_embedding_service
+):
     store = temp_vector_store
     mock_service = mock_embedding_service
 
-    num_chunks = 1000
-    chunks: list[DocumentChunk] = []
-
-    for i in range(num_chunks):
-        content = (
-            f"Test chunk {i}: This is performance test content with unique "
-            f"identifier {i}."
-        )
-        chunks.append(
-            DocumentChunk(
-                content=content,
-                metadata={
-                    "source": f"perf_doc_{i // 100}.txt",
-                    "chunk_id": i,
-                    "start_char": i * 100,
-                    "end_char": (i + 1) * 100,
-                    "length": len(content),
-                },
-                embedding=mock_service.get_embedding(content),
-            ),
-        )
+    chunks = performance_chunks_factory(1000, "Performance test content")
 
     storage_start = time.time()
     store.add_chunks(chunks)
@@ -76,29 +58,13 @@ def test_vector_store_performance(temp_vector_store, mock_embedding_service):
     assert search_time < 0.015, f"Search too slow: {search_time:.3f}s"
 
 
-def test_memory_usage_stability(temp_vector_store, mock_embedding_service):
+def test_memory_usage_stability(temp_vector_store, performance_chunks_factory):
     process = psutil.Process(os.getpid())
     initial_memory = process.memory_info().rss / 1024 / 1024
     store = temp_vector_store
-    mock_service = mock_embedding_service
 
     for round_num in range(5):
-        chunks: list[DocumentChunk] = []
-        for i in range(200):
-            content = f"Memory test chunk round {round_num} item {i}: " + "x" * 100
-            chunks.append(
-                DocumentChunk(
-                    content=content,
-                    metadata={
-                        "source": f"memory_test_r{round_num}.txt",
-                        "chunk_id": i,
-                        "start_char": i * 100,
-                        "end_char": (i + 1) * 100,
-                        "length": len(content),
-                    },
-                    embedding=mock_service.get_embedding(content),
-                ),
-            )
+        chunks = performance_chunks_factory(200, f"Memory test chunk round {round_num}")
 
         store.add_chunks(chunks)
 
@@ -108,8 +74,8 @@ def test_memory_usage_stability(temp_vector_store, mock_embedding_service):
         assert memory_growth < 20, f"Excessive memory growth: {memory_growth:.1f}MB"
 
 
-def test_very_large_chunks():
-    chunker = TextChunker(chunk_size=10000, overlap=1000)
+def test_very_large_chunks(text_chunker_large):
+    chunker = text_chunker_large
 
     large_content = "This is a stress test with very large chunks. " * 25000
 

@@ -1,7 +1,8 @@
 """Comprehensive tests for ConversationManager class."""
 
 import datetime
-from unittest.mock import Mock, patch
+from contextlib import ExitStack
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -9,28 +10,37 @@ import pytest
 from app import ConversationManager, ConversationTurn, DocumentChunk
 
 
-def test_conversation_manager_init_with_api_key(mock_rag_pipeline):
-    manager = ConversationManager(
-        rag_pipeline=mock_rag_pipeline, openai_api_key="test-key"
-    )
+@pytest.mark.parametrize(
+    ("init_kwargs", "expected_key", "requires_env_patch"),
+    [
+        ({"openai_api_key": "test-key"}, "test-key", False),
+        ({}, "env-key", True),
+    ],
+)
+def test_conversation_manager_initialization(
+    mock_rag_pipeline_empty_return, init_kwargs, expected_key, requires_env_patch
+):
+    with ExitStack() as stack:
+        if requires_env_patch:
+            stack.enter_context(
+                patch(
+                    "app.conversation.config.get_openai_api_key",
+                    return_value=expected_key,
+                )
+            )
+        manager = ConversationManager(
+            rag_pipeline=mock_rag_pipeline_empty_return, **init_kwargs
+        )
 
-    assert manager.rag_pipeline == mock_rag_pipeline
-    assert manager.client.api_key == "test-key"
+    assert manager.rag_pipeline == mock_rag_pipeline_empty_return
+    assert manager.client.api_key == expected_key
     assert manager.conversation_history == []
     assert manager.max_history_turns == 5
 
 
-def test_conversation_manager_init_with_env_api_key(mock_rag_pipeline):
-    with patch("app.conversation.config.get_openai_api_key", return_value="env-key"):
-        manager = ConversationManager(rag_pipeline=mock_rag_pipeline)
-        assert manager.client.api_key == "env-key"
-
-
-def test_empty_history_initialization(conversation_manager):
-    assert len(conversation_manager.conversation_history) == 0
-
-
-def test_conversation_history_storage(conversation_manager, sample_chunks):
+def test_conversation_history_storage(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     with (
         patch.object(
             conversation_manager, "generate_standalone_query", return_value="test query"
@@ -38,14 +48,8 @@ def test_conversation_history_storage(conversation_manager, sample_chunks):
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(conversation_manager, "Test answer"),
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test answer"))]
-        mock_create.return_value = mock_response
-
         _ = conversation_manager.answer_question("What is AI?")
 
         assert len(conversation_manager.conversation_history) == 1
@@ -99,7 +103,9 @@ def test_standalone_query_first_turn(conversation_manager):
     assert result == question
 
 
-def test_standalone_query_with_context(conversation_manager, sample_chunks):
+def test_standalone_query_with_context(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     turn = ConversationTurn(
         user_question="What is AI?",
         bot_response="AI is artificial intelligence.",
@@ -108,19 +114,10 @@ def test_standalone_query_with_context(conversation_manager, sample_chunks):
     )
     conversation_manager.conversation_history.append(turn)
 
-    with patch.object(
-        conversation_manager.client.chat.completions, "create"
+    with conversation_manager_chat_mock_factory(
+        conversation_manager,
+        "What are the applications of artificial intelligence?"
     ) as mock_create:
-        mock_response = Mock()
-        mock_response.choices = [
-            Mock(
-                message=Mock(
-                    content="What are the applications of artificial intelligence?"
-                )
-            )
-        ]
-        mock_create.return_value = mock_response
-
         result = conversation_manager.generate_standalone_query(
             "What are its applications?"
         )
@@ -135,7 +132,9 @@ def test_standalone_query_with_context(conversation_manager, sample_chunks):
         assert "What are its applications?" in prompt_content
 
 
-def test_standalone_query_multiple_turns(conversation_manager, sample_chunks):
+def test_standalone_query_multiple_turns(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     for i in range(5):
         turn = ConversationTurn(
             user_question=f"Question {i}",
@@ -145,13 +144,9 @@ def test_standalone_query_multiple_turns(conversation_manager, sample_chunks):
         )
         conversation_manager.conversation_history.append(turn)
 
-    with patch.object(
-        conversation_manager.client.chat.completions, "create"
+    with conversation_manager_chat_mock_factory(
+        conversation_manager, "Rewritten question"
     ) as mock_create:
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Rewritten question"))]
-        mock_create.return_value = mock_response
-
         conversation_manager.generate_standalone_query("Follow-up question")
 
         # Verify only last 3 turns are in the prompt
@@ -164,7 +159,9 @@ def test_standalone_query_multiple_turns(conversation_manager, sample_chunks):
         assert "Question 4" in prompt_content
 
 
-def test_standalone_query_api_error_handling(conversation_manager, sample_chunks):
+def test_standalone_query_api_error_handling(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     turn = ConversationTurn(
         user_question="What is AI?",
         bot_response="AI is artificial intelligence.",
@@ -173,16 +170,15 @@ def test_standalone_query_api_error_handling(conversation_manager, sample_chunks
     )
     conversation_manager.conversation_history.append(turn)
 
-    with patch.object(
-        conversation_manager.client.chat.completions, "create"
-    ) as mock_create:
-        mock_create.side_effect = ValueError("API Error")
-
-        with pytest.raises(ValueError, match="API Error"):
-            conversation_manager.generate_standalone_query("Follow-up question")
+    with conversation_manager_chat_mock_factory(
+        conversation_manager, side_effect=ValueError("API Error")
+    ), pytest.raises(ValueError, match="API Error"):
+        conversation_manager.generate_standalone_query("Follow-up question")
 
 
-def test_standalone_query_empty_response(conversation_manager, sample_chunks):
+def test_standalone_query_empty_response(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     turn = ConversationTurn(
         user_question="What is AI?",
         bot_response="AI is artificial intelligence.",
@@ -191,13 +187,7 @@ def test_standalone_query_empty_response(conversation_manager, sample_chunks):
     )
     conversation_manager.conversation_history.append(turn)
 
-    with patch.object(
-        conversation_manager.client.chat.completions, "create"
-    ) as mock_create:
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content=None))]
-        mock_create.return_value = mock_response
-
+    with conversation_manager_chat_mock_factory(conversation_manager, None):
         result = conversation_manager.generate_standalone_query("Follow-up question")
 
         # Should fall back to original question
@@ -208,10 +198,15 @@ def test_build_context_prompt_without_history(conversation_manager, sample_chunk
     question = "What is machine learning?"
     prompt = conversation_manager.build_context_prompt(question, sample_chunks)
 
+    assert prompt.startswith("You are a helpful assistant")
     assert "Previous Conversation" not in prompt
     assert "Relevant Document Sections" in prompt
     assert question in prompt
-    assert "You are a helpful assistant" in prompt
+    assert "Current Question: " + question in prompt
+    assert "1. Base your answer primarily on the provided document sections" in prompt
+    assert prompt.endswith(
+        "Please provide a helpful and accurate response based on the context above:"
+    )
 
     for chunk, score in sample_chunks:
         assert chunk.content in prompt
@@ -235,20 +230,6 @@ def test_build_context_prompt_with_history(conversation_manager, sample_chunks):
     assert "Assistant: AI is artificial intelligence." in prompt
     assert "=== Relevant Document Sections ===" in prompt
     assert question in prompt
-
-
-def test_context_prompt_format_validation(conversation_manager, sample_chunks):
-    question = "Test question"
-    prompt = conversation_manager.build_context_prompt(question, sample_chunks)
-
-    assert prompt.startswith("You are a helpful assistant")
-    assert "1. Base your answer primarily on the provided document sections" in prompt
-    assert "Current Question: " + question in prompt
-    assert prompt.endswith(
-        "Please provide a helpful and accurate response based on the context above:"
-    )
-
-
 def test_context_prompt_chunk_formatting(conversation_manager):
     chunks = [
         (
@@ -277,7 +258,9 @@ def test_context_prompt_chunk_formatting(conversation_manager):
     assert "Content: Deep learning content" in prompt
 
 
-def test_answer_question_success_flow(conversation_manager, sample_chunks):
+def test_answer_question_success_flow(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     with (
         patch.object(
             conversation_manager,
@@ -287,14 +270,10 @@ def test_answer_question_success_flow(conversation_manager, sample_chunks):
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(
+            conversation_manager, "Test answer content"
+        ),
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test answer content"))]
-        mock_create.return_value = mock_response
-
         result = conversation_manager.answer_question("What is AI?")
 
         assert result["answer"] == "Test answer content"
@@ -318,7 +297,9 @@ def test_answer_question_no_retrieved_chunks(conversation_manager):
         assert result["confidence"] == 0.0
 
 
-def test_answer_question_with_conversation_context(conversation_manager, sample_chunks):
+def test_answer_question_with_conversation_context(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     turn = ConversationTurn(
         user_question="What is machine learning?",
         bot_response="ML is a subset of AI.",
@@ -331,14 +312,10 @@ def test_answer_question_with_conversation_context(conversation_manager, sample_
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
+        conversation_manager_chat_mock_factory(
+            conversation_manager, "Context-aware answer"
         ) as mock_create,
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Context-aware answer"))]
-        mock_create.return_value = mock_response
-
         _ = conversation_manager.answer_question("How does it work?")
 
         call_args = mock_create.call_args
@@ -347,7 +324,9 @@ def test_answer_question_with_conversation_context(conversation_manager, sample_
         assert "ML is a subset of AI." in prompt_content
 
 
-def test_confidence_score_calculation(conversation_manager):
+def test_confidence_score_calculation(
+    conversation_manager, conversation_manager_chat_mock_factory
+):
     chunks_with_scores = [
         (DocumentChunk(content="content1", metadata={"source": "doc1"}), 0.9),
         (DocumentChunk(content="content2", metadata={"source": "doc2"}), 0.7),
@@ -361,21 +340,17 @@ def test_confidence_score_calculation(conversation_manager):
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=chunks_with_scores
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(conversation_manager, "Answer"),
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Answer"))]
-        mock_create.return_value = mock_response
-
         result = conversation_manager.answer_question("Test question")
 
         expected_confidence = np.mean([0.9, 0.7, 0.5])
         assert abs(result["confidence"] - expected_confidence) < 1e-6
 
 
-def test_answer_question_api_error_handling(conversation_manager, sample_chunks):
+def test_answer_question_api_error_handling(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     with (
         patch.object(
             conversation_manager, "generate_standalone_query", return_value="test"
@@ -383,12 +358,10 @@ def test_answer_question_api_error_handling(conversation_manager, sample_chunks)
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(
+            conversation_manager, side_effect=ValueError("API parsing error")
+        ),
     ):
-        mock_create.side_effect = ValueError("API parsing error")
-
         result = conversation_manager.answer_question("Test question")
 
         assert "I encountered a parsing error" in result["answer"]
@@ -396,7 +369,9 @@ def test_answer_question_api_error_handling(conversation_manager, sample_chunks)
         assert result["confidence"] == 0.0
 
 
-def test_answer_question_empty_response(conversation_manager, sample_chunks):
+def test_answer_question_empty_response(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     with (
         patch.object(
             conversation_manager, "generate_standalone_query", return_value="test"
@@ -404,14 +379,8 @@ def test_answer_question_empty_response(conversation_manager, sample_chunks):
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(conversation_manager, None),
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content=None))]
-        mock_create.return_value = mock_response
-
         result = conversation_manager.answer_question("Test question")
 
         assert result["answer"] == "I apologize, but I couldn't generate a response."
@@ -437,7 +406,9 @@ def test_rag_pipeline_error_handling(conversation_manager):
             conversation_manager.answer_question("Test question")
 
 
-def test_conversation_turn_creation(conversation_manager, sample_chunks):
+def test_conversation_turn_creation(
+    conversation_manager, sample_chunks, conversation_manager_chat_mock_factory
+):
     with (
         patch.object(
             conversation_manager, "generate_standalone_query", return_value="test"
@@ -445,14 +416,8 @@ def test_conversation_turn_creation(conversation_manager, sample_chunks):
         patch.object(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
-        patch.object(
-            conversation_manager.client.chat.completions, "create"
-        ) as mock_create,
+        conversation_manager_chat_mock_factory(conversation_manager, "Test answer"),
     ):
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test answer"))]
-        mock_create.return_value = mock_response
-
         with patch("app.conversation.datetime") as mock_datetime:
             mock_datetime.datetime.now.return_value.isoformat.return_value = (
                 "2023-01-01T00:00:00Z"

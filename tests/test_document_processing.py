@@ -31,9 +31,9 @@ def test_unsupported_file_type():
         DocumentLoader.load_document(Path("test.invalid"))
 
 
-def test_chunk_creation():
+def test_chunk_creation(text_chunker_small):
     """Test basic text chunking."""
-    chunker = TextChunker(chunk_size=100, overlap=20)
+    chunker = text_chunker_small
     text = "This is a test document. " * 20  # Make text long enough
 
     chunks = chunker.chunk_text(text, source="test_doc")
@@ -68,9 +68,9 @@ def test_chunk_overlap():
     assert first_end - second_start == 10  # Expected overlap
 
 
-def test_chunk_metadata_completeness():
+def test_chunk_metadata_completeness(text_chunker_small):
     """Test that chunk metadata is complete."""
-    chunker = TextChunker(chunk_size=100, overlap=20)
+    chunker = text_chunker_small
     text = "Test text for metadata checking. " * 10
 
     chunks = chunker.chunk_text(text, "metadata_test")

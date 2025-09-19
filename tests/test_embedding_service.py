@@ -10,8 +10,8 @@ from app.config import config
 from app import EmbeddingService
 
 
-def test_init_with_api_key() -> None:
-    service = EmbeddingService(api_key="test-key", model="text-embedding-3-small")
+def test_init_with_api_key(embedding_service_factory) -> None:
+    service = embedding_service_factory(model="text-embedding-3-small")
     assert service.model == "text-embedding-3-small"
     assert service.client.api_key == "test-key"
 
@@ -23,16 +23,17 @@ def test_init_with_env_api_key() -> None:
         assert service.client.api_key == "env-key"
 
 
-def test_init_default_model() -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_init_default_model(embedding_service) -> None:
+    service = embedding_service
     assert service.model == config.EMBEDDING_MODEL
 
 
-def test_get_embedding_success(mock_single_embedding) -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_get_embedding_success(openai_embeddings_factory, embedding_service) -> None:
+    mock_api = openai_embeddings_factory("single_success")
+    service = embedding_service
     result = service.get_embedding("test text")
 
-    mock_single_embedding.assert_called_once_with(
+    mock_api.assert_called_once_with(
         model="text-embedding-3-small",
         input="test text",
     )
@@ -42,19 +43,21 @@ def test_get_embedding_success(mock_single_embedding) -> None:
     np.testing.assert_array_equal(result, np.array(expected_embedding))
 
 
-def test_get_embedding_api_error(mock_api_error) -> None:  # noqa: ARG001
-    service = EmbeddingService(api_key="test-key")
+def test_get_embedding_api_error(openai_embeddings_factory, embedding_service) -> None:
+    openai_embeddings_factory("error", error_message="API Error")
+    service = embedding_service
 
     with pytest.raises(Exception, match="API Error"):
         service.get_embedding("test text")
 
 
-def test_get_embeddings_batch_success(mock_batch_embeddings) -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_get_embeddings_batch_success(openai_embeddings_factory, embedding_service) -> None:
+    mock_api = openai_embeddings_factory("batch_success")
+    service = embedding_service
     texts = ["text1", "text2", "text3"]
     results = service.get_embeddings_batch(texts)
 
-    mock_batch_embeddings.assert_called_once_with(
+    mock_api.assert_called_once_with(
         model="text-embedding-3-small",
         input=texts,
     )
@@ -66,18 +69,19 @@ def test_get_embeddings_batch_success(mock_batch_embeddings) -> None:
         np.testing.assert_array_equal(result, np.array(expected_embeddings[i]))
 
 
-def test_get_embeddings_batch_with_batching(mock_multiple_batches) -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_get_embeddings_batch_with_batching(openai_embeddings_factory, embedding_service) -> None:
+    mock_api = openai_embeddings_factory("multiple_batches")
+    service = embedding_service
     texts = ["text1", "text2", "text3", "text4"]
     results = service.get_embeddings_batch(texts, batch_size=2)
 
-    assert mock_multiple_batches.call_count == 2
+    assert mock_api.call_count == 2
 
-    mock_multiple_batches.assert_any_call(
+    mock_api.assert_any_call(
         model="text-embedding-3-small",
         input=["text1", "text2"],
     )
-    mock_multiple_batches.assert_any_call(
+    mock_api.assert_any_call(
         model="text-embedding-3-small",
         input=["text3", "text4"],
     )
@@ -89,29 +93,31 @@ def test_get_embeddings_batch_with_batching(mock_multiple_batches) -> None:
         np.testing.assert_array_equal(result, np.array(expected_embeddings[i]))
 
 
-def test_get_embeddings_batch_api_error(mock_batch_api_error) -> None:  # noqa: ARG001
-    service = EmbeddingService(api_key="test-key")
+def test_get_embeddings_batch_api_error(openai_embeddings_factory, embedding_service) -> None:
+    openai_embeddings_factory("error", error_message="Batch API Error")
+    service = embedding_service
     texts = ["text1", "text2"]
 
     with pytest.raises(Exception, match="Batch API Error"):
         service.get_embeddings_batch(texts)
 
 
-def test_get_embeddings_batch_empty_list(mock_openai_create) -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_get_embeddings_batch_empty_list(openai_embeddings_api_mock, embedding_service) -> None:
+    service = embedding_service
     results = service.get_embeddings_batch([])
-    mock_openai_create.assert_not_called()
+    openai_embeddings_api_mock.assert_not_called()
     assert results == []
 
 
-def test_get_embeddings_batch_partial_failure(mock_partial_failure) -> None:
-    service = EmbeddingService(api_key="test-key")
+def test_get_embeddings_batch_partial_failure(openai_embeddings_factory, embedding_service) -> None:
+    mock_api = openai_embeddings_factory("partial_failure")
+    service = embedding_service
     texts = ["text1", "text2", "text3"]
 
     with pytest.raises(Exception, match="Second batch failed"):
         service.get_embeddings_batch(texts, batch_size=1)
 
-    assert mock_partial_failure.call_count == 2
+    assert mock_api.call_count == 2
 
 
 # Integration tests that require a real OpenAI API key

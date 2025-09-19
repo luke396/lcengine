@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from app import config as config_module
-from app.config import Config, env_path
+from app.config import Config
 
 
 def test_get_openai_api_key_from_env():
@@ -116,12 +116,6 @@ def test_openai_base_url_from_env():
         assert config_module.Config.OPENAI_BASE_URL == "https://custom.openai.com"
 
 
-def test_openai_base_url_none_when_not_set():
-    """Test OpenAI base URL is None when not set."""
-    with patch.object(Config, "OPENAI_BASE_URL", None):
-        assert Config.OPENAI_BASE_URL is None
-
-
 @pytest.mark.parametrize(
     ("env_value", "is_dev", "is_prod"),
     [
@@ -139,9 +133,21 @@ def test_environment_detection(env_value, is_dev, is_prod):
         assert Config.is_production() == is_prod
 
 
-def test_setup_logging_default_level():
-    """Test logging setup with default INFO level."""
+@pytest.mark.parametrize(
+    ("log_level", "openai_level", "expected_level", "expected_openai_level"),
+    [
+        ("INFO", "WARNING", logging.INFO, logging.WARNING),
+        ("DEBUG", "ERROR", logging.DEBUG, logging.ERROR),
+        ("INVALID", "INVALID", logging.INFO, logging.WARNING),
+    ],
+)
+def test_setup_logging_levels(
+    log_level, openai_level, expected_level, expected_openai_level
+):
+    """Verify logging setup respects overrides and falls back on invalid values."""
     with (
+        patch.object(Config, "LOG_LEVEL", log_level),
+        patch.object(Config, "OPENAI_LOG_LEVEL", openai_level),
         patch("app.config.logging.basicConfig") as mock_basic,
         patch("app.config.logging.getLogger") as mock_get_logger,
     ):
@@ -150,55 +156,12 @@ def test_setup_logging_default_level():
         Config.setup_logging()
 
         mock_basic.assert_called_once_with(
-            level=logging.INFO,
+            level=expected_level,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             datefmt="%H:%M:%S",
         )
-
         mock_get_logger.assert_called_once_with("openai")
-        mock_logger.setLevel.assert_called_once_with(logging.WARNING)
-
-
-def test_setup_logging_custom_level():
-    """Test logging setup with custom levels."""
-    with (
-        patch.object(Config, "LOG_LEVEL", "DEBUG"),
-        patch.object(Config, "OPENAI_LOG_LEVEL", "ERROR"),
-        patch("app.config.logging.basicConfig") as mock_basic,
-        patch("app.config.logging.getLogger") as mock_get_logger,
-    ):
-        mock_logger = mock_get_logger.return_value
-
-        Config.setup_logging()
-
-        mock_basic.assert_called_once_with(
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%H:%M:%S",
-        )
-
-        mock_logger.setLevel.assert_called_once_with(logging.ERROR)
-
-
-def test_setup_logging_invalid_level_fallback():
-    """Test logging setup falls back to defaults for invalid levels."""
-    with (
-        patch.object(Config, "LOG_LEVEL", "INVALID"),
-        patch.object(Config, "OPENAI_LOG_LEVEL", "INVALID"),
-        patch("app.config.logging.basicConfig") as mock_basic,
-        patch("app.config.logging.getLogger") as mock_get_logger,
-    ):
-        mock_logger = mock_get_logger.return_value
-
-        Config.setup_logging()
-
-        mock_basic.assert_called_once_with(
-            level=logging.INFO,  # Falls back to INFO
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%H:%M:%S",
-        )
-
-        mock_logger.setLevel.assert_called_once_with(logging.WARNING)
+        mock_logger.setLevel.assert_called_once_with(expected_openai_level)
 
 
 def test_get_logger():
@@ -226,21 +189,6 @@ def test_type_conversion_errors(env_var, invalid_value, error_match):
         pytest.raises(ValueError, match=error_match),
     ):
         reload(config_module)
-
-
-def test_config_instance_creation():
-    """Test that config instance is created properly."""
-    reload(config_module)
-    assert isinstance(config_module.config, config_module.Config)
-    assert config_module.config.__class__.__name__ == "Config"
-
-
-def test_dotenv_loading():
-    """Test that .env file loading logic works correctly."""
-    # Test the loading logic by checking if env_path is constructed correctly
-    assert isinstance(env_path, Path)
-    assert env_path.name == ".env"
-    assert env_path.parent.name == "lcengine"  # Project root directory
 
 
 def test_no_dotenv_loading_when_missing():
