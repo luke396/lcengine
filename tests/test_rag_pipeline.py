@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from app import DocumentLoader, TextChunker
+from app import DocumentLoader
 from tests.conftest import TestConstants
 
 MIN_VALID_SCORE = 0.0
@@ -31,11 +31,16 @@ def test_document_to_chunks_pipeline(sample_document_path, text_chunker_default)
     for i in range(range_start_index, len(chunks)):
         prev_end = chunks[i - range_start_index].metadata["end_char"]
         curr_start = chunks[i].metadata["start_char"]
-        assert prev_end - curr_start == TestConstants.DEFAULT_CHUNK_OVERLAP  # Expected overlap
+        assert (
+            prev_end - curr_start == TestConstants.DEFAULT_CHUNK_OVERLAP
+        )  # Expected overlap
 
 
 def test_mock_rag_pipeline(
-    sample_document_path, mock_embedding_service, temp_vector_store, text_chunker_default
+    sample_document_path,
+    mock_embedding_service,
+    temp_vector_store,
+    text_chunker_default,
 ) -> None:
     if not sample_document_path.exists():
         pytest.skip("Sample document not found")
@@ -71,7 +76,10 @@ def test_mock_rag_pipeline(
 
 
 def test_large_document_processing(
-    mock_embedding_service, large_document_setup, temp_vector_store, text_chunker_default
+    mock_embedding_service,
+    large_document_setup,
+    temp_vector_store,
+    text_chunker_default,
 ):
     _, doc_path, _ = large_document_setup
 

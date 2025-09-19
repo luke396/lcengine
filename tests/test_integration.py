@@ -79,7 +79,7 @@ def mock_pipeline_processing(
     return stack
 
 
-def test_complete_rag_workflow_text_document(
+def test_complete_rag_workflow_text_document(  # noqa: PLR0913, PLR0917
     rag_pipeline_factory,
     conversation_manager_factory,
     sample_document_path,
@@ -143,7 +143,7 @@ def test_rag_pipeline_with_empty_document(
         assert result == [], "Empty document should return no results"
 
 
-def test_conversation_manager_with_api_error(
+def test_conversation_manager_with_api_error(  # noqa: PLR0913, PLR0917
     rag_pipeline_factory,
     conversation_manager_factory,
     tmp_path,

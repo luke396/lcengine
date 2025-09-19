@@ -6,8 +6,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from app.config import config
 from app import EmbeddingService
+from app.config import config
 
 
 def test_init_with_api_key(embedding_service_factory) -> None:
@@ -51,7 +51,9 @@ def test_get_embedding_api_error(openai_embeddings_factory, embedding_service) -
         service.get_embedding("test text")
 
 
-def test_get_embeddings_batch_success(openai_embeddings_factory, embedding_service) -> None:
+def test_get_embeddings_batch_success(
+    openai_embeddings_factory, embedding_service
+) -> None:
     mock_api = openai_embeddings_factory("batch_success")
     service = embedding_service
     texts = ["text1", "text2", "text3"]
@@ -69,7 +71,9 @@ def test_get_embeddings_batch_success(openai_embeddings_factory, embedding_servi
         np.testing.assert_array_equal(result, np.array(expected_embeddings[i]))
 
 
-def test_get_embeddings_batch_with_batching(openai_embeddings_factory, embedding_service) -> None:
+def test_get_embeddings_batch_with_batching(
+    openai_embeddings_factory, embedding_service
+) -> None:
     mock_api = openai_embeddings_factory("multiple_batches")
     service = embedding_service
     texts = ["text1", "text2", "text3", "text4"]
@@ -93,7 +97,9 @@ def test_get_embeddings_batch_with_batching(openai_embeddings_factory, embedding
         np.testing.assert_array_equal(result, np.array(expected_embeddings[i]))
 
 
-def test_get_embeddings_batch_api_error(openai_embeddings_factory, embedding_service) -> None:
+def test_get_embeddings_batch_api_error(
+    openai_embeddings_factory, embedding_service
+) -> None:
     openai_embeddings_factory("error", error_message="Batch API Error")
     service = embedding_service
     texts = ["text1", "text2"]
@@ -102,14 +108,18 @@ def test_get_embeddings_batch_api_error(openai_embeddings_factory, embedding_ser
         service.get_embeddings_batch(texts)
 
 
-def test_get_embeddings_batch_empty_list(openai_embeddings_api_mock, embedding_service) -> None:
+def test_get_embeddings_batch_empty_list(
+    openai_embeddings_api_mock, embedding_service
+) -> None:
     service = embedding_service
     results = service.get_embeddings_batch([])
     openai_embeddings_api_mock.assert_not_called()
     assert results == []
 
 
-def test_get_embeddings_batch_partial_failure(openai_embeddings_factory, embedding_service) -> None:
+def test_get_embeddings_batch_partial_failure(
+    openai_embeddings_factory, embedding_service
+) -> None:
     mock_api = openai_embeddings_factory("partial_failure")
     service = embedding_service
     texts = ["text1", "text2", "text3"]

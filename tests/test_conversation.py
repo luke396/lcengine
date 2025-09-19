@@ -115,8 +115,7 @@ def test_standalone_query_with_context(
     conversation_manager.conversation_history.append(turn)
 
     with conversation_manager_chat_mock_factory(
-        conversation_manager,
-        "What are the applications of artificial intelligence?"
+        conversation_manager, "What are the applications of artificial intelligence?"
     ) as mock_create:
         result = conversation_manager.generate_standalone_query(
             "What are its applications?"
@@ -170,9 +169,12 @@ def test_standalone_query_api_error_handling(
     )
     conversation_manager.conversation_history.append(turn)
 
-    with conversation_manager_chat_mock_factory(
-        conversation_manager, side_effect=ValueError("API Error")
-    ), pytest.raises(ValueError, match="API Error"):
+    with (
+        conversation_manager_chat_mock_factory(
+            conversation_manager, side_effect=ValueError("API Error")
+        ),
+        pytest.raises(ValueError, match="API Error"),
+    ):
         conversation_manager.generate_standalone_query("Follow-up question")
 
 
@@ -230,6 +232,8 @@ def test_build_context_prompt_with_history(conversation_manager, sample_chunks):
     assert "Assistant: AI is artificial intelligence." in prompt
     assert "=== Relevant Document Sections ===" in prompt
     assert question in prompt
+
+
 def test_context_prompt_chunk_formatting(conversation_manager):
     chunks = [
         (
@@ -417,14 +421,14 @@ def test_conversation_turn_creation(
             conversation_manager.rag_pipeline, "query", return_value=sample_chunks
         ),
         conversation_manager_chat_mock_factory(conversation_manager, "Test answer"),
+        patch("app.conversation.datetime") as mock_datetime,
     ):
-        with patch("app.conversation.datetime") as mock_datetime:
-            mock_datetime.datetime.now.return_value.isoformat.return_value = (
-                "2023-01-01T00:00:00Z"
-            )
-            mock_datetime.UTC = datetime.UTC
+        mock_datetime.datetime.now.return_value.isoformat.return_value = (
+            "2023-01-01T00:00:00Z"
+        )
+        mock_datetime.UTC = datetime.UTC
 
-            conversation_manager.answer_question("Test question")
+        conversation_manager.answer_question("Test question")
 
-            turn = conversation_manager.conversation_history[0]
-            assert turn.timestamp == "2023-01-01T00:00:00Z"
+        turn = conversation_manager.conversation_history[0]
+        assert turn.timestamp == "2023-01-01T00:00:00Z"
