@@ -56,6 +56,17 @@ class Config:
     )
     VECTOR_STORE_DIR: Path = Path(os.getenv("VECTOR_STORE_DIR", "data/vectors"))
 
+    # API Header Configuration
+    API_USER_AGENT: str = os.getenv("API_USER_AGENT", "LCEngine/1.0")
+    API_TEST_HEADER_NAME: str | None = os.getenv(
+        "API_TEST_HEADER_NAME",
+        "X-LCEngine-Test-Token",
+    )
+    API_TEST_HEADER_VALUE: str | None = os.getenv(
+        "API_TEST_HEADER_VALUE",
+        "allow",
+    )
+
     @classmethod
     def validate(cls) -> None:
         """Validate required configuration values.
@@ -118,6 +129,19 @@ class Config:
             Logger instance
         """
         return logging.getLogger(name)
+
+    @classmethod
+    def get_api_headers(cls) -> dict[str, str]:
+        """Build default headers for outbound API calls."""
+        headers: dict[str, str] = {}
+
+        if cls.API_USER_AGENT:
+            headers["User-Agent"] = cls.API_USER_AGENT
+
+        if cls.API_TEST_HEADER_NAME and cls.API_TEST_HEADER_VALUE:
+            headers[cls.API_TEST_HEADER_NAME] = cls.API_TEST_HEADER_VALUE
+
+        return headers
 
 
 config = Config()

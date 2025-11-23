@@ -26,9 +26,11 @@ class ConversationManager:
             openai_api_key: OpenAI API key.
         """
         self.rag_pipeline: RAGPipeline = rag_pipeline
+        default_headers = config.get_api_headers()
         self.client = OpenAI(
             api_key=openai_api_key or config.get_openai_api_key(),
             base_url=config.OPENAI_BASE_URL,
+            default_headers=default_headers or None,
         )
         self.conversation_history: list[ConversationTurn] = []
         self.max_history_turns = 5
