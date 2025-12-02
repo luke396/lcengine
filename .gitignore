@@ -1,21 +1,42 @@
-# Python-generated files
+# Python artifacts
 __pycache__/
 *.py[oc]
+
+# Build outputs
 build/
 dist/
 wheels/
 *.egg-info
 
 # Virtual environments
-.venv
-.venv-*
+.venv/
+.venv-*/
 
+# Environment files
 .env
+.env.*
+!.env.example
 
-# pytest
+# Tooling caches and coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
+.coverage.*
 htmlcov/
 
-*.npy
+# IDE and local tooling
+.vscode/
+.idea/
+.python-version
+
+# Runtime data and generated vectors (root)
+/data/
+
+# Local databases and arrays
 *.db
-*.txt
+*.sqlite
+*.npy
+
+# Logs
+*.log
