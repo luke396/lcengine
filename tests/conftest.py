@@ -29,6 +29,7 @@ from app import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TEST_DATA_DIR = PROJECT_ROOT / "tests" / "data"
 
 
 class TestConstants:
@@ -366,13 +367,13 @@ def sample_document_path():
     This fixture uses persistent files for: hand-crafted data,
     complex content, read-only test data shared across tests.
     """
-    return PROJECT_ROOT / "data" / "sample_ml_document.txt"
+    return TEST_DATA_DIR / "sample_ml_document.txt"
 
 
 @pytest.fixture(scope="session")
 def evaluation_dataset_path():
     """Path to the evaluation dataset."""
-    return PROJECT_ROOT / "data" / "evaluation_dataset.json"
+    return TEST_DATA_DIR / "evaluation_dataset.json"
 
 
 @pytest.fixture
