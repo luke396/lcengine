@@ -132,7 +132,11 @@ class Config:
 
     @classmethod
     def get_api_headers(cls) -> dict[str, str]:
-        """Build default headers for outbound API calls."""
+        """Build default headers for outbound API calls.
+
+        Returns:
+            Mapping of header names to values used on outbound HTTP requests.
+        """
         headers: dict[str, str] = {}
 
         if cls.API_USER_AGENT:

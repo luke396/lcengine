@@ -11,7 +11,7 @@ Supervised learning uses labeled training data where the correct answers (target
 - Classification: Predicting discrete categories (spam vs. not spam emails)
 - Regression: Predicting continuous numerical values (house prices, stock prices)
 
-2. Unsupervised Learning  
+2. Unsupervised Learning
 Unsupervised learning works with unlabeled data and tries to find hidden patterns, structures, or relationships without knowing the correct answers. Examples include:
 - Clustering: Grouping similar data points together
 - Dimensionality reduction: Simplifying data while preserving important information

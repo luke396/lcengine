@@ -79,6 +79,13 @@
   - 引入 Model Spec/Constitutional 规则，记录 Agent 工具链执行轨迹并在调试面板可视化
   - 评估脚本新增“工具调用成功率 / 反思次数 / 平均延迟”等指标，使多 Agent 提升可量化
 
+## 开发与质量
+
+- 使用 `uv sync` 安装依赖（包含 pre-commit/pyright）
+- 安装 git 钩子：`uv run pre-commit install`
+- 本地快速检查：`uv run pre-commit run --all-files --show-diff-on-failure`
+- 运行测试：`uv run pytest -m "not slow"`
+
 ## Reference
 
 - <https://python.langchain.com/docs/tutorials/rag/>

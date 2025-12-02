@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
+import subprocess  # noqa: S404
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -76,10 +76,11 @@ def build_streamlit_command(
 def run_streamlit(command: Sequence[str], logger: Logger) -> int:
     """Execute the configured streamlit command and return its exit code."""  # noqa: DOC201
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603
             command,
             check=False,
             cwd=PROJECT_ROOT,
+            shell=False,
         )
     except KeyboardInterrupt:
         logger.info("LCEngine stopped by user")
