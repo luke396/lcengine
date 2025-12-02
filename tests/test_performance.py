@@ -8,8 +8,11 @@ import os
 import time
 
 import psutil
+import pytest
 
 from app import DocumentChunk, TextChunker
+
+pytestmark = pytest.mark.slow
 
 
 def test_text_chunking_performance(text_chunker_default):
