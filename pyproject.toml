@@ -3,6 +3,7 @@ name = "lcengine"
 version = "0.1.0"
 description = "Native RAG system with gradual framework integration"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     # Core v0.1 dependencies - native implementation
