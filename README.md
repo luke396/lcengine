@@ -1,83 +1,54 @@
 # LCEngine
 
-## ~~v0.1 - 原生 RAG 系统 MVP~~ 2025-09-19
+Learning copilot for LLM/深度学习：聊天式问答、可插拔检索与外网搜索、长期记忆、轻量 UI，既可自用也可用于面试展示。
 
-- 一个功能完整的、基于 Streamlit 的 RAG 应用
-- 用户可以上传一份 PDF/TXT 文档
-- 用户可以围绕该文档进行多轮对话问答
-- 后端有清晰的日志，显示检索到的上下文片段
+## 快速开始
 
-- [x] 核心 RAG 管道
-  - 实现 RAG 全流程： Load -> Split -> Embed -> Store
-  - 使用 numpy 余弦相似度 + pickle 存储替代向量数据库
-  - 自实现简单的文本分割策略（固定长度 + 重叠）
-  - 直接调用 OpenAI embeddings API 进行向量化
-- [x] 多轮对话管理
-  - 使用 Streamlit session_state 管理对话历史
-  - 手动构建上下文：将历史对话与当前问题结合
-  - 简单的独立查询生成逻辑
-- [x] 前端
-  - 使用 Streamlit 构建简洁的交互界面
-- [x] 评估准备
-  - 构建"黄金标准"评估集： 针对测试文档，精心设计 20-30 个 (问题, 理想答案) 对，并存为 JSON 文件
+- 依赖：Python 3.10+，`uv`。
+- 安装：`uv sync`
+- 运行 UI：`python main.py`（默认启动 Streamlit，端口 8501）
+  - 调试 UI：`streamlit run app.py --server.port 8501`
+- 运行测试：`pytest`（或 `pytest -m "not slow"`）
+- 代码质量：`ruff check app tests` / `ruff format app tests`，类型检查 `pyright app tests`
 
-## v0.2 - 引入框架的评估驱动优化
+## 核心能力
 
-从原生实现升级到框架支持，引入了高级检索策略，并建立自动化评估流水线（不再依赖手写问答）。
+- 多源知识：本地上传 PDF/TXT/MD，URL/GitHub ingest，外网搜索 Agent 默认开启（可关），站点白名单控制抓取范围；搜索结果会抓取 → 摘要 → 入库并标注来源/时间。
+- 记忆体系：对话短期记忆 + 长期学习档案（高价值 Q/A、笔记、错题、已 ingest 资料），带主题/时间/来源/模型版本等 metadata，检索重排优先最近/常学方向。
+- 检索与生成：FAISS 主索引、Multi-Query 扩展召回、Cross-Encoder 重排；生成起步用在线 API，后续可用自有数据微调开源模型（检索/重排/生成）。
+- 模式：学习模式（讲解+学习计划+资料清单+练习）、解决问题模式（错误日志/调参建议）、快速问答模式（直接检索+回答）；UI 仅保留必要控件（模式切换、添加来源、保存笔记/错题、外网开关）。
+- 可观测与安全：回答附来源/相似度；日志记录检索片段和工具调用轨迹；`.env` 管理密钥，外网搜索默认 ON 但可关闭，白名单限制域名。
 
-- [ ] 自动化评估流水线
-  - 集成 RAGAs 框架进行量化评估，并使用其 `Synthetic QA Generation`/`Contextual Precision` 组件自动构造评测样本
-  - 编写一个评估脚本 (evaluate.py)，针对任意上传文档运行“生成 QA → 检索 → 度量”全流程，输出 Faithfulness、Answer Relevancy、Context Precision 等指标
-  - 运行脚本，得到 v0.1 版本的基线性能报告并记录依赖（例如 `ragas`, `langchain-openai`）
-  - 清理/弃用 `data/evaluation_dataset.json` 的手工问答依赖，改为在评测脚本里即时生成或缓存合成数据集
-- [ ] 向量存储升级
-  - 从 numpy + pickle 升级到 FAISS 向量数据库
-  - 提升检索速度和相似度搜索精度
-- [ ] 高级检索策略实现
-  - 实现 Re-ranking： 在召回后，集成一个 Cross-Encoder 模型（如 bge-reranker-base）进行重新排序，提升上下文的精准度
-  - 实现查询转换 (Query Transformation)： 在检索前，让 LLM 根据对话历史和当前问题生成多个不同角度的子查询 (Multi-Query)，合并检索结果以提升召回率
-- [ ] 迭代与验证
-  - 将新策略集成到 RAG 管道中
-  - 再次运行评估脚本，用数据量化对比 v0.1 和 v0.2 在各项指标上的提升。将对比结果记录在项目的 README.md 中
+## 使用方式
 
-## v0.3 - 论文讲解与学习路径助手
+1. 启动后在聊天输入框提问，可先上传文档或提供 URL/GitHub 链接作为知识来源。
+2. 需要额外上下文时可保持外网搜索开启，或在设置中关闭。
+3. 对有价值的回答点“保存为笔记/错题”（待实现的轻量控件），写入长期记忆并带 metadata。
+4. 在侧边栏（规划中）查看已 ingest 资料、笔记和开关状态。
 
-基于 v0.1 的原生 RAG 能力和 v0.2 的自动评估框架，聚焦“大模型/深度学习学习助手”场景，把系统升级成能抓取最新资料、生成讲解与学习计划的垂直产品。
+## 配置与数据
 
-- [ ] 多源知识抓取与清洗
-  - 构建异步 ingestion（LangChain loaders + httpx/asyncio），接入 arXiv API、arXiv/顶会 RSS、技术博客、GitHub 教程、社区新闻
-  - 统一解析 PDF/Markdown/HTML，抽取摘要、作者、会议、主题标签、引用，写入结构化 metadata，并记录 ingestion runs 以便重放
-  - 在 `data/` 下按主题（NLP/CV/Agent 等）分区，配合 v0.2 的评测缓存以便回放
-- [ ] 结构化 RAG 升级
-  - 为每个主题生成多向量索引（语义 embedding + 专业术语向量 + 引用图 embedding），探索 FAISS 多索引或 Weaviate hybrid
-  - 引入 GraphRAG/树状总结（LangGraph、llama-index KG）构建主题图谱，利用 `Chain-of-thought summarization`/`Tree-of-Thoughts` 排序上下文
-  - 使用长上下文模型（GPT-4.1 128k、Claude 3.5、o1-mini long）或 `Long-context RAG`：粗召回 → 文本裁剪 → 二次聚焦
-- [ ] 学习路径与讲解生成
-  - `PaperSummarizerAgent`：输出“中文讲稿 + 知识卡片 + QA 要点 + 引用”；支持多模态（GPT-4o mini）生成示意图
-  - `LearningPathAgent`：输入主题后自动规划章节、资料链接、练习题/代码 Demo，结合 ReAct 规划与工具调用
-  - 所有回答附 `source`、`similarity`、`confidence`，并写审计日志，方便用户追踪与评估
-- [ ] 反馈与评测闭环
-  - 复用 v0.2 的 evaluate.py，对新抓取语料运行 RAGAs（Faithfulness/Context Precision）+ 自定义“讲解完整度/引用齐全度”指标
-  - 在 UI/README 展示各专题指标变化，收集用户 thumbs up/down/讲解清晰度反馈，形成数据闭环
+- `.env`：`OPENAI_API_KEY`（必需），可扩展 `CHAT_MODEL`、`VECTOR_STORE_DIR`、外网白名单等配置。
+- 数据目录：`data/` 作为向量库与缓存默认路径，请勿将大型生成物入 Git。
+- 日志：默认通过 `config.get_logger`，包含检索片段与工具调用轨迹。
 
-## v0.4 - Agent 工具链与推理增强
+## 版本迭代规划
 
-把 v0.3 的“资料 + 讲解”进一步升级到“多 Agent 协同的学习实验室”，引入推理型模型、工具自发现、长期记忆与安全自检。
+- **v0.1 基础 RAG MVP（已完成）**：Streamlit 聊天，上传 PDF/TXT，固定切分 + OpenAI Embedding，numpy+pickle 向量存储，多轮对话上下文拼接，日志展示检索片段。
+- **v0.2 记忆 + FAISS 基础版**：升级 FAISS，存 metadata（主题/来源/时间/用户）；支持“保存为笔记/错题”写入长期记忆；UI 增加外网搜索开关（默认 ON）；产出首版评估集与 baseline（RAGAS/Hit@k/P95 延迟/成本），`evaluate.py` 最小跑法，结果落盘 `data/eval_runs/`。
+- **v0.3 Ingest & 搜索路由**：添加 URL/GitHub ingest，站点白名单；本地命中不足时触发搜索 Agent → 抓取 → 摘要 → 入库并标注来源/时间；侧边栏展示已 ingest 资料。
+- **v0.4 检索质量增强**：Multi-Query 查询生成、Cross-Encoder 重排（bge-reranker-\* 等在线模型）；支持按主题/时间/来源过滤与加权重排。
+- **v0.5 学习模式 & 评估闭环**：学习模式模板（讲解+计划+练习），解决问题模式模板（错误日志/调参建议）；`evaluate.py` 跑 RAGAS 基线与策略对比，输出 JSON/CSV；在 README 记录关键指标提升。
+- **v0.6 Agent 工具链 & 微调展示**：工具注册（搜索/ingest/代码运行/图表生成可选），白名单/开关可视化；收集对话与反馈，筹备或演示基于自有数据的微调/蒸馏；可选 LangGraph/LlamaIndex Workflow 自验证（Self-RAG/CoV）。
 
-- [ ] 推理模型与 LangGraph 编排
-  - 接入 o1/o3、DeepSeek-R1、Qwen2.5-Math 等 reasoning-first 模型，根据任务自动路由
-  - 在 LangGraph/LlamaIndex Workflow 中实现 ReAct/Self-Ask/Plan-and-Solve 策略，必要时使用 `chain_of_thought`/`chain_of_verification`
-- [ ] 工具自发现与扩展
-  - 设计标准 Tool Registry（检索、代码执行、图表生成、翻译、浏览器等），支持 YAML 配置热插拔
-  - 研发 `CodeRunnerAgent`（复现论文伪代码/Colab + Matplotlib 图）、`QuizMasterAgent`（出题/批改 + 解析）、`NewsRadarAgent`（热点推送 + 要点卡片）
-  - 探索 AutoTool/ToolGen 让模型根据任务描述组合脚本并在沙盒执行，记录成功率
-- [ ] 长期记忆与学习体验
-  - 引入 MemGPT/LTM-RAG，将对话、错题、兴趣压缩成长期记忆块，按需加载；展示知识星图、学习曲线
-  - UI 增强：错题本、复习提醒、章节进度、推荐下一步任务，形成完整学习闭环
-- [ ] 自我验证、合规与可观测性
-  - 实现 Chain-of-Verification / Self-RAG，对答案做交叉验证并输出 `confidence_report`
-  - 引入 Model Spec/Constitutional 规则，记录 Agent 工具链执行轨迹并在调试面板可视化
-  - 评估脚本新增“工具调用成功率 / 反思次数 / 平均延迟”等指标，使多 Agent 提升可量化
+评估节奏：v0.2 完成后建立固定评测集和基准，后续每个版本（v0.3/v0.4）迭代后复跑并记录差异，在 `docs/DEVLOG.md` 和 `docs/experiments.md` 记录配置、指标、成本/延迟，方便面试展示多版本对比。
+
+## 开发记录与指标追踪
+
+- 变更与决策：`docs/DEVLOG.md` 记录日期/版本、改动、动机、决策取舍、遇到的坑。
+- 实验与指标：`docs/experiments.md` 记录每次评估配置（模型/切分/检索/重排参数）、数据/文档来源、RAGAS 指标、消融/对比结论、成本/延迟。`evaluate.py` 运行结果落盘至 `data/eval_runs/<timestamp>.json|csv`，在文档中引用文件名。
+- 演示素材：`docs/demo_script.md`（3-5 分钟剧情）、架构图（PNG/SVG）、指标表格/截图，便于面试演示。
+- 安全：外网搜索默认 ON 可关，站点白名单控制抓取范围；向量库/长期记忆持久化在本地 `data/`，按用户/主题分区。
 
 ## 开发与质量
 
@@ -86,6 +57,6 @@
 - 本地快速检查：`uv run pre-commit run --all-files --show-diff-on-failure`
 - 运行测试：`uv run pytest -m "not slow"`
 
-## Reference
+## 参考
 
 - <https://python.langchain.com/docs/tutorials/rag/>
