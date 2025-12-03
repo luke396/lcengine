@@ -167,7 +167,7 @@ class FaissVectorStore(BaseSQLiteStore):
         results: list[tuple[DocumentChunk, float]] = []
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.cursor()
-            for score, vector_id in zip(scores[0], vector_ids[0], strict=False):
+            for score, vector_id in zip(scores[0], vector_ids[0], strict=True):
                 if int(vector_id) == -1:  # faiss returns -1 for empty results
                     continue
                 chunk = self._fetch_chunk_by_vector_id(cursor, int(vector_id))
