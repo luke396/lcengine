@@ -28,8 +28,14 @@ Place new tests in `tests/` using the `test_<subject>.py` pattern. Reuse fixture
 
 ## Commit & Pull Request Guidelines
 
-Commits follow Conventional Commit prefixes (`feat:`, `fix:`, `test:`, `chore:`) with concise scopes. For pull requests include a summary, linked issue or roadmap item, test command output, configuration updates (e.g., new env vars), and visuals or transcripts when the UI changes.
+Commits follow Conventional Commit prefixes (`feat:`, `fix:`, `test:`, `chore:`, `refactor:`) with concise scopes. For pull requests include a summary, linked issue or roadmap item, test command output, configuration updates (e.g., new env vars), and visuals or transcripts when the UI changes.
 
 ## Configuration & Secrets
 
 Create a `.env` (gitignored) with `OPENAI_API_KEY`; override `CHAT_MODEL`, `VECTOR_STORE_DIR`, or log levels only as needed. The app calls `config.validate()` on startup, so verify keys locally before committing. Never commit API keys or generated vector databases; share sanitized setup notes when new values are needed.
+
+## Code Quality & Static Analysis
+
+Run `ruff` and `pyright` locally to catch issues. Address all linting errors and type warnings unless there’s a documented exception.
+
+Keep `pyproject.toml` and `uv.lock` in sync with dependency changes; run `uv sync` after modifying either.
