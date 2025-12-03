@@ -57,4 +57,4 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
       - name: Run full test suite
-        run: uv run pytest --cov=app --cov=tests --cov-report=term-missing --maxfail=1 --durations=20
+        run: uv run pytest --cov=app --cov=tests --cov-report=term-missing --cov-fail-under=85 --maxfail=1 --durations=20
