@@ -43,7 +43,7 @@ jobs:
           --cov=app --cov=tests --cov-report=term-missing
           --cov-fail-under=85 --maxfail=1 --durations=20
 
-  tests-slow: # only on merging main branch or manual trigger
+  tests-slow: # only on push to main branch or manual trigger
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     needs: lint
