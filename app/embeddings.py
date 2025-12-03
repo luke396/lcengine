@@ -23,14 +23,15 @@ class EmbeddingService:
                 reads from OPENAI_API_KEY environment variable.
             model: Embedding model name. If None, uses config.EMBEDDING_MODEL.
         """
-        api_key = api_key or config.get_openai_api_key()
+        if api_key is None:
+            api_key = config.get_openai_api_key()
         default_headers = config.get_api_headers()
         self.client = OpenAI(
             api_key=api_key,
             base_url=config.OPENAI_BASE_URL,
             default_headers=default_headers or None,
         )
-        self.model = model or config.EMBEDDING_MODEL
+        self.model = model if model is not None else config.EMBEDDING_MODEL
 
     def get_embedding(self, text: str) -> np.ndarray:
         """Get embedding for a single text.

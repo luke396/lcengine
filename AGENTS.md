@@ -33,3 +33,9 @@ Commits follow Conventional Commit prefixes (`feat:`, `fix:`, `test:`, `chore:`)
 ## Configuration & Secrets
 
 Create a `.env` (gitignored) with `OPENAI_API_KEY`; override `CHAT_MODEL`, `VECTOR_STORE_DIR`, or log levels only as needed. The app calls `config.validate()` on startup, so verify keys locally before committing. Never commit API keys or generated vector databases; share sanitized setup notes when new values are needed.
+
+## Code Quality & Static Analysis
+
+Run `ruff` and `pyright` locally to catch issues. Address all linting errors and type warnings unless there’s a documented exception.
+
+Keep `pyproject.toml` and `uv.lock` in sync with dependency changes; run `uv sync` after modifying either.

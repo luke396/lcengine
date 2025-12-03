@@ -27,8 +27,10 @@ class ConversationManager:
         """
         self.rag_pipeline: RAGPipeline = rag_pipeline
         default_headers = config.get_api_headers()
+        if openai_api_key is None:
+            openai_api_key = config.get_openai_api_key()
         self.client = OpenAI(
-            api_key=openai_api_key or config.get_openai_api_key(),
+            api_key=openai_api_key,
             base_url=config.OPENAI_BASE_URL,
             default_headers=default_headers or None,
         )

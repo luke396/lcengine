@@ -51,10 +51,17 @@ class Config:
     )
 
     # Vector Store Configuration
+    VECTOR_BACKEND: str = os.getenv("VECTOR_BACKEND", "faiss").lower()
     VECTOR_STORE_DB_PATH: Path = Path(
         os.getenv("VECTOR_STORE_DB_PATH", "data/vector_store.db")
     )
     VECTOR_STORE_DIR: Path = Path(os.getenv("VECTOR_STORE_DIR", "data/vectors"))
+    FAISS_INDEX_PATH: Path = Path(
+        os.getenv("FAISS_INDEX_PATH", "data/faiss/index.faiss")
+    )
+    VECTOR_RAW_TOP_K_MULTIPLIER: int = int(
+        os.getenv("VECTOR_RAW_TOP_K_MULTIPLIER", "2")
+    )
 
     # API Header Configuration
     API_USER_AGENT: str = os.getenv("API_USER_AGENT", "LCEngine/1.0")
