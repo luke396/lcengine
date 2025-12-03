@@ -28,7 +28,7 @@ Place new tests in `tests/` using the `test_<subject>.py` pattern. Reuse fixture
 
 ## Commit & Pull Request Guidelines
 
-Commits follow Conventional Commit prefixes (`feat:`, `fix:`, `test:`, `chore:`) with concise scopes. For pull requests include a summary, linked issue or roadmap item, test command output, configuration updates (e.g., new env vars), and visuals or transcripts when the UI changes.
+Commits follow Conventional Commit prefixes (`feat:`, `fix:`, `test:`, `chore:`, `ref:`) with concise scopes. For pull requests include a summary, linked issue or roadmap item, test command output, configuration updates (e.g., new env vars), and visuals or transcripts when the UI changes.
 
 ## Configuration & Secrets
 

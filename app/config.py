@@ -2,9 +2,11 @@
 
 import logging
 import os
+from functools import cache
 from pathlib import Path
 
 from dotenv import load_dotenv
+from openai import OpenAI
 
 env_path = Path(__file__).parent.parent / ".env"
 
@@ -154,5 +156,35 @@ class Config:
 
         return headers
 
+    def get_openai_client(self, api_key: str | None = None) -> OpenAI:
+        """Return a shared OpenAI client configured from settings."""
+        api_key_value = api_key or self.get_openai_api_key()
+        headers_key = tuple(sorted(self.get_api_headers().items()))
+        return _build_openai_client(api_key_value, self.OPENAI_BASE_URL, headers_key)
+
 
 config = Config()
+
+
+@cache
+def _build_openai_client(
+    api_key: str,
+    base_url: str | None,
+    headers_key: tuple[tuple[str, str], ...],
+) -> OpenAI:
+    """Internal cached client builder to reuse HTTP connection pooling.
+
+    Returns:
+        A configured OpenAI client reused across the process.
+    """
+    headers = dict(headers_key)
+    return OpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        default_headers=headers or None,
+    )
+
+
+def clear_openai_client_cache() -> None:
+    """Reset the cached OpenAI client instances (primarily for tests)."""
+    _build_openai_client.cache_clear()

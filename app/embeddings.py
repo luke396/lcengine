@@ -15,6 +15,7 @@ class EmbeddingService:
         self,
         api_key: str | None = None,
         model: str | None = None,
+        client: OpenAI | None = None,
     ) -> None:
         """Initialize the EmbeddingService with OpenAI API key and model.
 
@@ -22,14 +23,10 @@ class EmbeddingService:
             api_key: OpenAI API key. If None,
                 reads from OPENAI_API_KEY environment variable.
             model: Embedding model name. If None, uses config.EMBEDDING_MODEL.
+            client: Optional shared OpenAI client to reuse across services.
         """
-        if api_key is None:
-            api_key = config.get_openai_api_key()
-        default_headers = config.get_api_headers()
-        self.client = OpenAI(
-            api_key=api_key,
-            base_url=config.OPENAI_BASE_URL,
-            default_headers=default_headers or None,
+        self.client = (
+            client if client is not None else config.get_openai_client(api_key)
         )
         self.model = model if model is not None else config.EMBEDDING_MODEL
 

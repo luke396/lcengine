@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import cast
 
+from openai import OpenAI
+
 from .config import config
 from .document_processing import DocumentLoader, TextChunker
 from .embeddings import EmbeddingService
@@ -18,6 +20,7 @@ class RAGPipeline:
     def __init__(  # noqa: PLR0913,PLR0917
         self,
         openai_api_key: str | None = None,
+        openai_client: OpenAI | None = None,
         chunk_size: int | None = None,
         overlap: int | None = None,
         sqlite_db_path: Path | None = None,
@@ -29,6 +32,7 @@ class RAGPipeline:
 
         Args:
             openai_api_key: OpenAI API key.
+            openai_client: Optional shared OpenAI client instance.
             chunk_size: Size of text chunks. If None, uses config.CHUNK_SIZE.
             overlap: Overlap between chunks. If None, uses config.CHUNK_OVERLAP.
             sqlite_db_path: Path for SQLite database/metadata. If None, uses
@@ -56,7 +60,10 @@ class RAGPipeline:
         backend = cast("VectorBackend", backend_value.lower())
 
         self.chunker = TextChunker(chunk_size=chunk_size, overlap=overlap)
-        self.embedding_service = EmbeddingService(api_key=openai_api_key)
+        self.embedding_service = EmbeddingService(
+            api_key=openai_api_key,
+            client=openai_client,
+        )
 
         self.vector_store = get_vector_store(
             backend,
