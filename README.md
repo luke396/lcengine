@@ -73,7 +73,7 @@ LCEngine is a native RAG implementation that demonstrates deep understanding of 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/lcengine.git
+git clone https://github.com/luke396/lcengine.git
 cd lcengine
 
 # Install dependencies with uv
