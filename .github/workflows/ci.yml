@@ -67,7 +67,7 @@ jobs:
       - name: Run full test suite
         run: uv run pytest --cov=app --cov=tests --cov-report=term-missing --cov-report=xml --cov-fail-under=85 --maxfail=1 --durations=20
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
