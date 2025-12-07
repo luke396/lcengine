@@ -24,6 +24,7 @@ wheels/
 .coverage
 .coverage.*
 htmlcov/
+coverage.xml
 
 # IDE and local tooling
 .vscode/
@@ -40,3 +41,6 @@ htmlcov/
 
 # Logs
 *.log
+
+# Internal planning documents
+docs/ROADMAP.md
