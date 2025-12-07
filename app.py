@@ -81,9 +81,11 @@ def initialize_system() -> bool:
     """
     try:
         with st.spinner("Initializing system..."):
-            st.session_state.rag_pipeline = RAGPipeline()
+            openai_client = config.get_openai_client()
+            st.session_state.rag_pipeline = RAGPipeline(openai_client=openai_client)
             st.session_state.conversation_manager = ConversationManager(
-                st.session_state.rag_pipeline
+                st.session_state.rag_pipeline,
+                openai_client=openai_client,
             )
             st.session_state.system_ready = True
 

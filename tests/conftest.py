@@ -23,6 +23,7 @@ from app import (
     ConversationManager,
     DocumentChunk,
     EmbeddingService,
+    FaissVectorStore,
     RAGPipeline,
     SQLiteVectorStore,
     TextChunker,
@@ -317,6 +318,14 @@ def temp_vector_store(tmp_path) -> SQLiteVectorStore:
 
 
 @pytest.fixture
+def temp_faiss_store(tmp_path) -> FaissVectorStore:
+    """Create temporary FAISS vector store for testing."""
+    db_path = tmp_path / "faiss_store.db"
+    index_path = tmp_path / "faiss" / "index.faiss"
+    return FaissVectorStore(db_path=db_path, index_path=index_path)
+
+
+@pytest.fixture
 def sample_text_chunks():
     """Create sample document chunks with text and metadata only (no embeddings)."""
     chunks = []
@@ -483,6 +492,7 @@ def rag_pipeline_factory(tmp_path):
         db_name: str = "test_store.db",
         chunk_size: int = 200,
         overlap: int = 50,
+        backend: str = "sqlite",
     ) -> RAGPipeline:
         with patch(
             "app.embeddings.config.get_openai_api_key",
@@ -492,6 +502,8 @@ def rag_pipeline_factory(tmp_path):
                 openai_api_key=TestConstants.TEST_API_KEY,
                 sqlite_db_path=tmp_path / db_name,
                 vectors_dir=tmp_path / "vectors",
+                faiss_index_path=tmp_path / "faiss" / "index.faiss",
+                vector_backend=backend,
                 chunk_size=chunk_size,
                 overlap=overlap,
             )

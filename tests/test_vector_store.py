@@ -19,6 +19,70 @@ def test_store_initialization(temp_vector_store):
     assert store.embeddings is None
 
 
+def test_metadata_and_labels_persistence(temp_vector_store, mock_embeddings):
+    store = temp_vector_store
+    chunk = DocumentChunk(
+        content="Test chunk with metadata",
+        metadata={
+            "source": "test_doc.txt",
+            "chunk_id": 0,
+            "start_char": 0,
+            "end_char": 10,
+            "length": 10,
+            "doc_type": "note",
+            "topic": "ml",
+            "user": "tester",
+            "labels": ["ml", "exam"],
+        },
+        embedding=mock_embeddings("Test chunk with metadata"),
+    )
+
+    store.add_chunks([chunk])
+
+    with sqlite3.connect(store.db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, doc_type, topic, user, vector_id FROM chunks LIMIT 1",
+        )
+        chunk_id, doc_type, topic, user, vector_id = cursor.fetchone()
+        cursor.execute("SELECT label FROM labels WHERE chunk_id = ?", (chunk_id,))
+        labels = sorted(label for (label,) in cursor.fetchall())
+
+    assert doc_type == "note"
+    assert topic == "ml"
+    assert user == "tester"
+    assert vector_id is not None
+    assert labels == ["exam", "ml"]
+
+
+def test_labels_loaded_with_chunks(temp_vector_store, mock_embeddings):
+    store = temp_vector_store
+    chunk = DocumentChunk(
+        content="Persisted chunk",
+        metadata={
+            "source": "persisted.txt",
+            "chunk_id": 1,
+            "start_char": 0,
+            "end_char": 20,
+            "length": 20,
+            "doc_type": "mistake",
+            "labels": ["review"],
+        },
+        embedding=mock_embeddings("Persisted chunk"),
+    )
+
+    store.add_chunks([chunk])
+    store.save()
+
+    new_store = SQLiteVectorStore(store.db_path, store.vectors_dir)
+    new_store.load()
+
+    assert len(new_store.chunks) == 1
+    loaded_chunk = new_store.chunks[0]
+    assert loaded_chunk.metadata.get("doc_type") == "mistake"
+    assert loaded_chunk.metadata.get("labels") == ["review"]
+
+
 def test_add_chunks(temp_vector_store, sample_embedded_chunks):
     store = temp_vector_store
 
