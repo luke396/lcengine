@@ -24,6 +24,7 @@ wheels/
 .coverage
 .coverage.*
 htmlcov/
+coverage.xml
 
 # IDE and local tooling
 .vscode/

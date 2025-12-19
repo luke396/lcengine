@@ -41,7 +41,15 @@ jobs:
         run: >
           uv run pytest -m "not slow"
           --cov=app --cov=tests --cov-report=term-missing
-          --cov-fail-under=85 --maxfail=1 --durations=20
+          --cov-report=xml --cov-fail-under=85 --maxfail=1 --durations=20
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-lcengine
+          fail_ci_if_error: false
 
   tests-slow: # only on push to main branch or manual trigger
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
@@ -57,4 +65,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
       - name: Run full test suite
-        run: uv run pytest --cov=app --cov=tests --cov-report=term-missing --cov-fail-under=85 --maxfail=1 --durations=20
+        run: uv run pytest --cov=app --cov=tests --cov-report=term-missing --cov-report=xml --cov-fail-under=85 --maxfail=1 --durations=20
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: slow-tests
+          name: codecov-lcengine-slow
+          fail_ci_if_error: false
