@@ -157,7 +157,16 @@ class Config:
         return headers
 
     def get_openai_client(self, api_key: str | None = None) -> OpenAI:
-        """Return a shared OpenAI client configured from settings."""
+        """
+        Get a shared, cached OpenAI client configured from settings.
+
+        Args:
+            api_key (str | None): Optional OpenAI API key to use. If not provided, uses the key from environment variables.
+
+        Returns:
+            OpenAI: A configured OpenAI client instance. The client is cached and reused based on the API key, base URL, and headers,
+            ensuring efficient HTTP connection pooling and consistent configuration across the application.
+        """
         api_key_value = api_key or self.get_openai_api_key()
         headers_key = tuple(sorted(self.get_api_headers().items()))
         return _build_openai_client(api_key_value, self.OPENAI_BASE_URL, headers_key)
