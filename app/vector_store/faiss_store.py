@@ -119,7 +119,7 @@ class FaissVectorStore(BaseSQLiteStore):
             vectors = np.vstack(embeddings_batch).astype("float32")
             ids_array = np.asarray(vector_ids, dtype="int64")
             try:
-                self.index.add_with_ids(vectors, ids_array)  # pyright: ignore[reportCallIssue]
+                self.index.add_with_ids(vectors, ids_array)  # pyright: ignore[reportCallIssue]  # FAISS stubs may not reflect add_with_ids signature
             except RuntimeError:
                 logger.exception(
                     "FAISS index does not support add_with_ids; "
