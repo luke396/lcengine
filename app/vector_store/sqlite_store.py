@@ -170,7 +170,13 @@ class SQLiteVectorStore(BaseSQLiteStore):
         return results
 
     def save(self) -> None:  # noqa: PLR6301
-        """Save operation - data is already persisted in SQLite and files."""
+        """
+        Save operation - data is already persisted in SQLite and files.
+
+        Note:
+            This method is kept as an instance method for interface consistency
+            with other vector store implementations, even though it does not use `self`.
+        """
         logger.info("Data already persisted in SQLite database and vector files")
 
     def load(self) -> None:
