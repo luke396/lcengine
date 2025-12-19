@@ -4,7 +4,7 @@ import logging
 import os
 from importlib import reload
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -114,6 +114,32 @@ def test_openai_base_url_from_env():
     with patch.dict(os.environ, {"OPENAI_BASE_URL": "https://custom.openai.com"}):
         reload(config_module)
         assert config_module.Config.OPENAI_BASE_URL == "https://custom.openai.com"
+
+
+def test_get_openai_client_reuses_cached_instance():
+    """Ensure OpenAI client factory caches by config tuple."""
+    config_module.clear_openai_client_cache()
+    first_client = Mock(name="client1")
+    second_client = Mock(name="client2")
+
+    try:
+        with (
+            patch.object(Config, "get_openai_api_key", return_value="cached-key"),
+            patch.object(
+                config_module,
+                "OpenAI",
+                side_effect=[first_client, second_client],
+            ),
+        ):
+            client1 = config_module.config.get_openai_client()
+            client2 = config_module.config.get_openai_client()
+
+            assert client1 is client2 is first_client
+
+            client3 = config_module.config.get_openai_client(api_key="another-key")
+            assert client3 is second_client
+    finally:
+        config_module.clear_openai_client_cache()
 
 
 @pytest.mark.parametrize(

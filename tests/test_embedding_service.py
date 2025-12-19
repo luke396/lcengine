@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
+from openai import APIConnectionError
 
 from app import EmbeddingService
 from app.config import config
@@ -140,14 +141,17 @@ def test_real_api_single_embedding() -> None:
     service = EmbeddingService(model="text-embedding-3-small")
 
     text = "This is a test sentence for embedding generation."
-    embedding = service.get_embedding(text)
+    try:
+        embedding = service.get_embedding(text)
+    except APIConnectionError as exc:  # pragma: no cover - network dependent
+        pytest.skip(f"OpenAI not reachable: {exc!s}")
+    else:
+        assert isinstance(embedding, np.ndarray)
+        assert len(embedding.shape) == 1
+        assert embedding.shape[0] == 1536  # text-embedding-3-small dimension
 
-    assert isinstance(embedding, np.ndarray)
-    assert len(embedding.shape) == 1
-    assert embedding.shape[0] == 1536  # text-embedding-3-small dimension
-
-    norm = np.linalg.norm(embedding)
-    assert 0.99 <= norm <= 1.01  # Allow small floating point errors
+        norm = np.linalg.norm(embedding)
+        assert 0.99 <= norm <= 1.01  # Allow small floating point errors
 
 
 @pytest.mark.skipif(
@@ -163,20 +167,23 @@ def test_real_api_batch_embeddings() -> None:
         "A third sentence to complete the batch.",
     ]
 
-    embeddings = service.get_embeddings_batch(texts, batch_size=2)
+    try:
+        embeddings = service.get_embeddings_batch(texts, batch_size=2)
+    except APIConnectionError as exc:  # pragma: no cover - network dependent
+        pytest.skip(f"OpenAI not reachable: {exc!s}")
+    else:
+        assert len(embeddings) == 3
 
-    assert len(embeddings) == 3
+        for embedding in embeddings:
+            assert isinstance(embedding, np.ndarray)
+            assert len(embedding.shape) == 1
+            assert embedding.shape[0] == 1536
 
-    for embedding in embeddings:
-        assert isinstance(embedding, np.ndarray)
-        assert len(embedding.shape) == 1
-        assert embedding.shape[0] == 1536
+            norm = np.linalg.norm(embedding)
+            assert 0.99 <= norm <= 1.01
 
-        norm = np.linalg.norm(embedding)
-        assert 0.99 <= norm <= 1.01
-
-    assert not np.allclose(embeddings[0], embeddings[1])
-    assert not np.allclose(embeddings[1], embeddings[2])
+        assert not np.allclose(embeddings[0], embeddings[1])
+        assert not np.allclose(embeddings[1], embeddings[2])
 
 
 @pytest.mark.skipif(
@@ -186,13 +193,17 @@ def test_real_api_batch_embeddings() -> None:
 def test_real_api_empty_text_handling() -> None:
     service = EmbeddingService(model="text-embedding-3-small")
 
-    embedding_empty = service.get_embedding("")
-    assert isinstance(embedding_empty, np.ndarray)
-    assert embedding_empty.shape[0] == 1536
+    try:
+        embedding_empty = service.get_embedding("")
+        embedding_whitespace = service.get_embedding("   \n\t   ")
+    except APIConnectionError as exc:  # pragma: no cover - network dependent
+        pytest.skip(f"OpenAI not reachable: {exc!s}")
+    else:
+        assert isinstance(embedding_empty, np.ndarray)
+        assert embedding_empty.shape[0] == 1536
 
-    embedding_whitespace = service.get_embedding("   \n\t   ")
-    assert isinstance(embedding_whitespace, np.ndarray)
-    assert embedding_whitespace.shape[0] == 1536
+        assert isinstance(embedding_whitespace, np.ndarray)
+        assert embedding_whitespace.shape[0] == 1536
 
 
 @pytest.mark.skipif(
@@ -220,11 +231,14 @@ def test_real_api_different_text_lengths() -> None:
         long_text,
     ]
 
-    embeddings = service.get_embeddings_batch(texts)
+    try:
+        embeddings = service.get_embeddings_batch(texts)
+    except APIConnectionError as exc:  # pragma: no cover - network dependent
+        pytest.skip(f"OpenAI not reachable: {exc!s}")
+    else:
+        for embedding in embeddings:
+            assert embedding.shape[0] == 1536
 
-    for embedding in embeddings:
-        assert embedding.shape[0] == 1536
-
-    assert not np.allclose(embeddings[0], embeddings[1])
-    assert np.allclose(embeddings[1], embeddings[2])
-    assert not np.allclose(embeddings[2], embeddings[3])
+        assert not np.allclose(embeddings[0], embeddings[1])
+        assert np.allclose(embeddings[1], embeddings[2])
+        assert not np.allclose(embeddings[2], embeddings[3])

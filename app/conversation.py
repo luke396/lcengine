@@ -17,20 +17,23 @@ class ConversationManager:
     """Manages multi-round conversations with context building."""
 
     def __init__(
-        self, rag_pipeline: RAGPipeline, openai_api_key: str | None = None
+        self,
+        rag_pipeline: RAGPipeline,
+        openai_api_key: str | None = None,
+        openai_client: OpenAI | None = None,
     ) -> None:
         """Initialize ConversationManager.
 
         Args:
             rag_pipeline: RAG pipeline instance.
             openai_api_key: OpenAI API key.
+            openai_client: Optional shared OpenAI client instance.
         """
         self.rag_pipeline: RAGPipeline = rag_pipeline
-        default_headers = config.get_api_headers()
-        self.client = OpenAI(
-            api_key=openai_api_key or config.get_openai_api_key(),
-            base_url=config.OPENAI_BASE_URL,
-            default_headers=default_headers or None,
+        self.client = (
+            openai_client
+            if openai_client is not None
+            else config.get_openai_client(openai_api_key)
         )
         self.conversation_history: list[ConversationTurn] = []
         self.max_history_turns = 5

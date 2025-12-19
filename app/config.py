@@ -2,9 +2,11 @@
 
 import logging
 import os
+from functools import cache
 from pathlib import Path
 
 from dotenv import load_dotenv
+from openai import OpenAI
 
 env_path = Path(__file__).parent.parent / ".env"
 
@@ -51,10 +53,17 @@ class Config:
     )
 
     # Vector Store Configuration
+    VECTOR_BACKEND: str = os.getenv("VECTOR_BACKEND", "faiss").lower()
     VECTOR_STORE_DB_PATH: Path = Path(
         os.getenv("VECTOR_STORE_DB_PATH", "data/vector_store.db")
     )
     VECTOR_STORE_DIR: Path = Path(os.getenv("VECTOR_STORE_DIR", "data/vectors"))
+    FAISS_INDEX_PATH: Path = Path(
+        os.getenv("FAISS_INDEX_PATH", "data/faiss/index.faiss")
+    )
+    VECTOR_RAW_TOP_K_MULTIPLIER: int = int(
+        os.getenv("VECTOR_RAW_TOP_K_MULTIPLIER", "2")
+    )
 
     # API Header Configuration
     API_USER_AGENT: str = os.getenv("API_USER_AGENT", "LCEngine/1.0")
@@ -147,5 +156,44 @@ class Config:
 
         return headers
 
+    def get_openai_client(self, api_key: str | None = None) -> OpenAI:
+        """
+        Get a shared, cached OpenAI client configured from settings.
+
+        Args:
+            api_key (str | None): Optional OpenAI API key to use. If not provided, uses the key from environment variables.
+
+        Returns:
+            OpenAI: A configured OpenAI client instance. The client is cached and reused based on the API key, base URL, and headers,
+            ensuring efficient HTTP connection pooling and consistent configuration across the application.
+        """
+        api_key_value = api_key or self.get_openai_api_key()
+        headers_key = tuple(sorted(self.get_api_headers().items()))
+        return _build_openai_client(api_key_value, self.OPENAI_BASE_URL, headers_key)
+
 
 config = Config()
+
+
+@cache
+def _build_openai_client(
+    api_key: str,
+    base_url: str | None,
+    headers_key: tuple[tuple[str, str], ...],
+) -> OpenAI:
+    """Internal cached client builder to reuse HTTP connection pooling.
+
+    Returns:
+        A configured OpenAI client reused across the process.
+    """
+    headers = dict(headers_key)
+    return OpenAI(
+        api_key=api_key,
+        base_url=base_url,
+        default_headers=headers or None,
+    )
+
+
+def clear_openai_client_cache() -> None:
+    """Reset the cached OpenAI client instances (primarily for tests)."""
+    _build_openai_client.cache_clear()
